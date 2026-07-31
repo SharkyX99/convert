@@ -1,46 +1,84 @@
-import Header from "../components/Header";
-import DropZone from "../components/DropZone";
-import Queue from "../components/Queue";
-import Settings from "../components/Settings";
-import Footer from "../components/Footer";
-
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_40%),#020617] px-4 py-8 text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <Header />
-
-        <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
-          <div className="space-y-6">
-            <DropZone />
-            <Queue />
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#020617",
+        color: "#f8fafc",
+        padding: "32px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "900px",
+          margin: "0 auto",
+          background: "#111827",
+          border: "1px solid #334155",
+          borderRadius: "24px",
+          padding: "32px",
+        }}
+      >
+        <p
+          style={{
+            color: "#22d3ee",
+            textTransform: "uppercase",
+            letterSpacing: "0.3em",
+            fontSize: "12px",
+          }}
+        >
+          Passage v3
+        </p>
+        <h1 style={{ fontSize: "36px", marginTop: "8px" }}>
+          Universal File Converter
+        </h1>
+        <p
+          style={{
+            marginTop: "12px",
+            fontSize: "18px",
+            color: "#cbd5e1",
+            lineHeight: 1.6,
+          }}
+        >
+          Images, video, audio, and documents in one place.
+        </p>
+        <div style={{ marginTop: "24px", display: "grid", gap: "12px" }}>
+          <div
+            style={{
+              border: "1px solid #334155",
+              borderRadius: "16px",
+              padding: "16px",
+            }}
+          >
+            📷 HEIC → JPG / PNG / WebP
           </div>
-
-          <div className="space-y-6">
-            <Settings />
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-              <h3 className="text-lg font-semibold">Smart analysis</h3>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {[
-                  ["Codec", "H.264"],
-                  ["Audio", "AAC"],
-                  ["Resolution", "4K"],
-                  ["Estimated", "2 sec"],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="rounded-xl border border-slate-800 bg-slate-950/70 p-4"
-                  >
-                    <p className="text-sm text-slate-400">{label}</p>
-                    <p className="mt-1 text-lg font-semibold">{value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div
+            style={{
+              border: "1px solid #334155",
+              borderRadius: "16px",
+              padding: "16px",
+            }}
+          >
+            🎥 MOV / MKV / AVI → MP4
           </div>
-        </section>
-
-        <Footer />
+          <div
+            style={{
+              border: "1px solid #334155",
+              borderRadius: "16px",
+              padding: "16px",
+            }}
+          >
+            🎵 MP3 / WAV / M4A / AAC / FLAC
+          </div>
+          <div
+            style={{
+              border: "1px solid #334155",
+              borderRadius: "16px",
+              padding: "16px",
+            }}
+          >
+            📄 Word / PowerPoint / Excel → PDF
+          </div>
+        </div>
       </div>
     </main>
   );
