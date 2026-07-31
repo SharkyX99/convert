@@ -1069,12 +1069,20 @@
             }
 
             async function convertVideo(item) {
-                const ff = await ensureFFmpeg();
+                const ff = window.addEventListener("load", () => {
+                    ensureFFmpeg();
+                });
                 currentVideoItem = item;
                 const inName = 'in_' + item.id + '.' + item.ext;
                 const outName = 'out_' + item.id + '.mp4';
                 await ff.writeFile(inName, await fetchFile(item.file));
-                await ff.exec(['-i', inName, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName]);
+                await ff.exec([
+                    '-i', inName,
+                    '-c', 'copy',
+                    '-movflags',
+                    '+faststart',
+                    outName
+                ]);
                 const data = await ff.readFile(outName);
                 const blob = new Blob([data.buffer], { type: 'video/mp4' });
                 try { await ff.deleteFile(inName); await ff.deleteFile(outName); } catch (e) { }
