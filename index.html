@@ -12,7 +12,7 @@
         rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.1/index.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.11.6/ffmpeg.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.12.15/umd/ffmpeg.min.js"></script>
     <style>
         :root {
             --ink: #12151A;
@@ -970,40 +970,60 @@
                 });
             }
 
+            // Minimal stand-ins for @ffmpeg/util (not on cdnjs) — same-origin blob loading avoids CORS/worker issues.
+            async function toBlobURL(url, mimeType) {
+                const resp = await fetch(url);
+                const buf = await resp.arrayBuffer();
+                return URL.createObjectURL(new Blob([buf], { type: mimeType }));
+            }
+            async function fetchFile(input) {
+                if (input instanceof Blob) return new Uint8Array(await input.arrayBuffer());
+                const resp = await fetch(input);
+                return new Uint8Array(await resp.arrayBuffer());
+            }
+
             async function ensureFFmpeg() {
                 if (ffmpegInstance) return ffmpegInstance;
                 if (ffmpegLoading) return ffmpegLoading;
                 ffmpegBanner.classList.add('show');
-                const { createFFmpeg } = FFmpeg;
-                ffmpegInstance = createFFmpeg({
-                    log: false,
-                    corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.8.5/ffmpeg-core.js'
+                const { FFmpeg } = FFmpegWASM;
+                const ffmpeg = new FFmpeg();
+                ffmpeg.on('progress', ({ progress }) => {
+                    if (currentVideoItem) {
+                        currentVideoItem.progress = Math.max(0, Math.min(1, progress || 0));
+                        render();
+                    }
                 });
-                ffmpegLoading = ffmpegInstance.load().then(() => {
+                // Single-thread core: no SharedArrayBuffer / cross-origin isolation required.
+                const baseURL = 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.12.10/umd';
+                ffmpegLoading = (async () => {
+                    const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+                    const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+                    await ffmpeg.load({ coreURL, wasmURL });
+                    ffmpegInstance = ffmpeg;
                     ffmpegBanner.classList.remove('show');
                     return ffmpegInstance;
-                }).catch(err => {
+                })().catch(err => {
                     ffmpegBanner.classList.remove('show');
-                    ffmpegInstance = null;
+                    ffmpegLoading = null;
                     throw err;
                 });
                 return ffmpegLoading;
             }
 
+            let currentVideoItem = null;
+
             async function convertVideo(item) {
                 const ff = await ensureFFmpeg();
-                const { fetchFile } = FFmpeg;
+                currentVideoItem = item;
                 const inName = 'in_' + item.id + '.' + item.ext;
                 const outName = 'out_' + item.id + '.mp4';
-                ff.FS('writeFile', inName, await fetchFile(item.file));
-                ff.setProgress(({ ratio }) => {
-                    item.progress = Math.max(0, Math.min(1, ratio || 0));
-                    render();
-                });
-                await ff.run('-i', inName, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName);
-                const data = ff.FS('readFile', outName);
+                await ff.writeFile(inName, await fetchFile(item.file));
+                await ff.exec(['-i', inName, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName]);
+                const data = await ff.readFile(outName);
                 const blob = new Blob([data.buffer], { type: 'video/mp4' });
-                try { ff.FS('unlink', inName); ff.FS('unlink', outName); } catch (e) { }
+                try { await ff.deleteFile(inName); await ff.deleteFile(outName); } catch (e) { }
+                currentVideoItem = null;
                 return blob;
             }
 
