@@ -5,32 +5,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Passage — แปลงไฟล์ Apple ให้ใช้ได้ทุกที่</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
-        rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.1/index.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.12.15/umd/ffmpeg.min.js"></script>
     <style>
         :root {
-            --ink: #12151A;
-            --ink-2: #1A1E26;
-            --panel: #1E232C;
-            --paper: #F2EEE4;
-            --paper-dim: #E4DFD0;
-            --paper-line: #CFC8B3;
-            --ink-text: #201D17;
-            --muted: #8A8F9C;
-            --muted-2: #5B6070;
-            --amber: #F2A93B;
-            --amber-dim: #B9832B;
-            --teal: #57D6BE;
-            --red: #E8604C;
-            --radius: 14px;
-            --radius-sm: 8px;
-            font-size: 16px;
+            --blue: #0A84FF;
+            --green: #30D158;
+            --red: #FF453A;
+            --orange: #FF9F0A;
+            --purple: #BF5AF2;
+            --teal: #64D2FF;
+            --label: #F5F5F7;
+            --label-2: rgba(235, 235, 245, 0.68);
+            --label-3: rgba(235, 235, 245, 0.38);
+            --glass-bg: rgba(255, 255, 255, 0.07);
+            --glass-bg-strong: rgba(255, 255, 255, 0.10);
+            --glass-border: rgba(255, 255, 255, 0.14);
+            --glass-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+            --radius-lg: 28px;
+            --radius-md: 20px;
+            --radius-sm: 13px;
         }
 
         * {
@@ -44,561 +39,269 @@
         }
 
         body {
-            background:
-                radial-gradient(1200px 600px at 12% -10%, #1E2430 0%, transparent 60%),
-                radial-gradient(1000px 700px at 100% 0%, #201A16 0%, transparent 55%),
-                var(--ink);
-            color: var(--paper);
-            font-family: 'Inter', system-ui, sans-serif;
-            -webkit-font-smoothing: antialiased;
             min-height: 100vh;
+            background: #050507;
+            color: var(--label);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            position: relative;
         }
 
         @media (prefers-reduced-motion: reduce) {
             * {
                 animation-duration: 0.001ms !important;
-                transition-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.05s !important;
             }
         }
 
-        .wrap {
-            max-width: 920px;
-            margin: 0 auto;
-            padding: 48px 24px 80px;
+        /* ---------- aurora background ---------- */
+        .aurora {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
         }
 
-        /* ---------- header ---------- */
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 56px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .brand-mark {
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, var(--amber), #D9832E);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'IBM Plex Mono', monospace;
-            font-weight: 600;
-            color: var(--ink);
-            font-size: 15px;
-            flex-shrink: 0;
-        }
-
-        .brand-name {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 600;
-            font-size: 19px;
-            letter-spacing: 0.01em;
-        }
-
-        .brand-tag {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11px;
-            color: var(--muted);
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            margin-top: 2px;
-        }
-
-        .privacy-chip {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11.5px;
-            color: var(--muted);
-            border: 1px solid #2C323F;
-            border-radius: 99px;
-            padding: 7px 13px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .privacy-chip .dot {
-            width: 6px;
-            height: 6px;
+        .blob {
+            position: absolute;
             border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.55;
+            will-change: transform;
+        }
+
+        .b1 {
+            width: 520px;
+            height: 520px;
+            background: var(--blue);
+            top: -140px;
+            left: -100px;
+            animation: float1 26s ease-in-out infinite;
+        }
+
+        .b2 {
+            width: 480px;
+            height: 480px;
+            background: var(--purple);
+            top: 10%;
+            right: -160px;
+            animation: float2 30s ease-in-out infinite;
+        }
+
+        .b3 {
+            width: 420px;
+            height: 420px;
             background: var(--teal);
-            flex-shrink: 0;
+            bottom: -160px;
+            left: 10%;
+            animation: float3 24s ease-in-out infinite;
         }
 
-        /* ---------- hero ---------- */
+        .b4 {
+            width: 360px;
+            height: 360px;
+            background: #FF375F;
+            bottom: 5%;
+            right: 5%;
+            opacity: 0.3;
+            animation: float1 34s ease-in-out infinite reverse;
+        }
+
+        @keyframes float1 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(60px, 40px) scale(1.08);
+            }
+        }
+
+        @keyframes float2 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(-50px, 60px) scale(0.94);
+            }
+        }
+
+        @keyframes float3 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(40px, -50px) scale(1.06);
+            }
+        }
+
+        .noise {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.025;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        .wrap {
+            position: relative;
+            z-index: 2;
+            max-width: 660px;
+            margin: 0 auto;
+            padding: 96px 22px 80px;
+        }
+
+        /* ---------- hero (no header/nav) ---------- */
         .hero {
-            margin-bottom: 40px;
-        }
-
-        .eyebrow {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 12px;
-            color: var(--amber);
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .eyebrow::before {
-            content: '';
-            width: 22px;
-            height: 1px;
-            background: var(--amber-dim);
+            text-align: center;
+            margin-bottom: 36px;
         }
 
         h1 {
-            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(34px, 6vw, 52px);
             font-weight: 700;
-            font-size: clamp(32px, 5vw, 50px);
-            line-height: 1.08;
-            letter-spacing: -0.01em;
-            margin: 0 0 18px;
-            max-width: 14ch;
-        }
-
-        h1 em {
-            font-style: normal;
-            color: var(--amber);
+            letter-spacing: -0.035em;
+            line-height: 1.06;
+            margin: 0 0 14px;
+            background: linear-gradient(180deg, #FFFFFF 0%, #C9C9D4 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
         .hero p {
-            font-size: 16px;
-            line-height: 1.65;
-            color: #C7CAD3;
-            max-width: 52ch;
-            margin: 0;
+            font-size: 17px;
+            line-height: 1.55;
+            color: var(--label-2);
+            max-width: 38ch;
+            margin: 0 auto;
+            font-weight: 400;
+        }
+
+        /* ---------- glass card base ---------- */
+        .glass {
+            background: linear-gradient(160deg, var(--glass-bg-strong), var(--glass-bg));
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
         }
 
         /* ---------- dropzone ---------- */
         .dropzone {
-            margin-top: 32px;
-            border: 1.5px dashed #3A4150;
-            border-radius: var(--radius);
-            padding: 44px 28px;
+            margin-top: 34px;
+            border-radius: var(--radius-lg);
+            padding: 48px 28px;
             text-align: center;
             cursor: pointer;
-            transition: border-color .15s ease, background .15s ease;
-            background: rgba(255, 255, 255, 0.015);
-            position: relative;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
         }
 
-        .dropzone:hover,
+        .dropzone:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.28);
+        }
+
         .dropzone.drag {
-            border-color: var(--amber);
-            background: rgba(242, 169, 59, 0.05);
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25), var(--glass-shadow);
         }
 
         .dropzone:focus-visible {
-            outline: 2px solid var(--amber);
-            outline-offset: 3px;
+            outline: 2px solid var(--blue);
+            outline-offset: 4px;
         }
 
-        .dz-icon {
-            width: 42px;
-            height: 42px;
-            margin: 0 auto 16px;
-            opacity: 0.85;
+        .dz-icon-wrap {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            margin: 0 auto 18px;
+            background: linear-gradient(150deg, var(--blue), #5AC8FA);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 24px -8px rgba(10, 132, 255, 0.55);
         }
 
         .dz-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 17px;
+            font-size: 18px;
             font-weight: 600;
-            margin-bottom: 6px;
+            letter-spacing: -0.01em;
+            margin-bottom: 5px;
         }
 
         .dz-sub {
-            font-size: 13.5px;
-            color: var(--muted);
+            font-size: 14px;
+            color: var(--label-3);
         }
 
         .dz-formats {
-            margin-top: 18px;
+            margin-top: 20px;
             display: flex;
-            gap: 8px;
+            gap: 7px;
             justify-content: center;
             flex-wrap: wrap;
         }
 
-        .fmt-chip {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11px;
-            color: var(--muted-2);
-            border: 1px solid #2C323F;
-            border-radius: 5px;
-            padding: 3px 8px;
-            letter-spacing: 0.03em;
+        .fmt-tag {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--label-2);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 7px;
+            padding: 4px 9px;
+            letter-spacing: 0.01em;
         }
 
-        .fmt-chip.out {
-            color: var(--teal);
-            border-color: #2C4A44;
+        .fmt-tag.out {
+            color: #7CE0C6;
+            border-color: rgba(48, 209, 88, 0.25);
+            background: rgba(48, 209, 88, 0.08);
         }
 
         input[type=file] {
             display: none;
         }
 
-        /* ---------- queue ---------- */
-        .queue-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 52px 0 16px;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .queue-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 15px;
-            font-weight: 600;
-            color: #D7DAE0;
-        }
-
-        .queue-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn {
-            font-family: 'Inter', sans-serif;
-            font-size: 13.5px;
-            font-weight: 600;
-            border-radius: 8px;
-            padding: 9px 16px;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: transform .1s ease, opacity .15s ease, background .15s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .btn:active {
-            transform: scale(0.97);
-        }
-
-        .btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .btn-primary {
-            background: var(--amber);
-            color: #231705;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #F7B655;
-        }
-
-        .btn-ghost {
-            background: transparent;
-            border-color: #333A47;
-            color: #C7CAD3;
-        }
-
-        .btn-ghost:hover:not(:disabled) {
-            border-color: var(--muted);
-        }
-
-        .btn-sm {
-            padding: 7px 12px;
-            font-size: 12.5px;
-        }
-
-        .empty-note {
-            color: var(--muted);
-            font-size: 13.5px;
-            padding: 24px 4px;
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        /* ---------- ticket card ---------- */
-        .ticket {
-            display: flex;
-            background: var(--paper);
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 14px;
-            color: var(--ink-text);
-            box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.5);
-            position: relative;
-        }
-
-        .ticket-stub {
-            width: 96px;
-            flex-shrink: 0;
-            background: var(--paper-dim);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            padding: 14px 6px;
-            border-right: 2px dashed var(--paper-line);
-        }
-
-        .ticket-stub::before,
-        .ticket-stub::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: var(--ink);
-            left: 88px;
-            margin-left: -8px;
-        }
-
-        .ticket-stub::before {
-            top: -8px;
-        }
-
-        .ticket-stub::after {
-            bottom: -8px;
-        }
-
-        .stub-code {
-            font-family: 'IBM Plex Mono', monospace;
-            font-weight: 600;
-            font-size: 14px;
-            letter-spacing: 0.02em;
-        }
-
-        .stub-label {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 9px;
-            color: var(--muted-2);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-top: 5px;
-        }
-
-        .stub-arrow {
-            margin: 8px 0;
-            opacity: 0.5;
-        }
-
-        .ticket-body {
-            flex: 1;
-            padding: 16px 18px;
-            min-width: 0;
-        }
-
-        .ticket-top {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            align-items: flex-start;
-        }
-
-        .ticket-name {
-            font-weight: 600;
-            font-size: 14.5px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 320px;
-        }
-
-        .ticket-meta {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11px;
-            color: var(--muted-2);
-            margin-top: 3px;
-        }
-
-        .remove-btn {
-            background: none;
-            border: none;
-            color: var(--muted-2);
-            cursor: pointer;
-            font-size: 17px;
-            line-height: 1;
-            padding: 2px 4px;
-            border-radius: 4px;
-            flex-shrink: 0;
-        }
-
-        .remove-btn:hover {
-            color: var(--red);
-        }
-
-        .ticket-controls {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 14px;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .segmented {
-            display: inline-flex;
-            background: #E7E1D2;
-            border-radius: 7px;
-            padding: 3px;
-            gap: 2px;
-        }
-
-        .segmented button {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11.5px;
-            font-weight: 600;
-            border: none;
-            background: transparent;
-            color: var(--muted-2);
-            padding: 6px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .segmented button.active {
-            background: var(--ink);
-            color: var(--paper);
-        }
-
-        .fixed-out {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11.5px;
-            font-weight: 600;
-            color: var(--ink-text);
-            background: #E7E1D2;
-            border-radius: 7px;
-            padding: 8px 14px;
-        }
-
-        .status-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .status-text {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11px;
-            color: var(--muted-2);
-            white-space: nowrap;
-        }
-
-        .status-text.err {
-            color: #B8402E;
-        }
-
-        .progress-track {
-            width: 84px;
-            height: 5px;
-            background: #DDD6C4;
-            border-radius: 99px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--amber-dim);
-            width: 0%;
-            transition: width .2s ease;
-        }
-
-        .stamp {
-            position: absolute;
-            top: 14px;
-            right: 18px;
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            font-size: 12px;
-            color: var(--teal);
-            border: 2px solid var(--teal);
-            border-radius: 6px;
-            padding: 3px 9px;
-            transform: rotate(6deg);
-            letter-spacing: 0.06em;
-            opacity: 0.9;
-            pointer-events: none;
-        }
-
-        .btn-mini {
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            font-size: 12.5px;
-            padding: 8px 14px;
-            border-radius: 7px;
-            cursor: pointer;
-            border: none;
-        }
-
-        .btn-mini.convert {
-            background: var(--ink);
-            color: var(--paper);
-        }
-
-        .btn-mini.convert:hover {
-            background: #2A3040;
-        }
-
-        .btn-mini.download {
-            background: var(--teal);
-            color: #0E2A24;
-        }
-
-        .btn-mini.download:hover {
-            background: #72E4CC;
-        }
-
-        .btn-mini:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* ---------- footer ---------- */
-        footer {
-            margin-top: 64px;
-            padding-top: 24px;
-            border-top: 1px solid #232936;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11.5px;
-            color: var(--muted-2);
-        }
-
-        #ffmpegBanner {
+        .engine-banner {
             display: none;
             align-items: center;
-            gap: 10px;
-            margin-top: 12px;
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 12px;
-            color: var(--amber);
+            gap: 9px;
+            justify-content: center;
+            margin: 16px auto 0;
+            max-width: fit-content;
+            padding: 8px 16px;
+            border-radius: 99px;
+            font-size: 12.5px;
+            color: #FFD479;
         }
 
-        #ffmpegBanner.show {
+        .engine-banner.show {
             display: flex;
         }
 
         .spinner {
-            width: 13px;
-            height: 13px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            border: 2px solid rgba(242, 169, 59, 0.25);
-            border-top-color: var(--amber);
+            border: 2px solid rgba(255, 159, 10, 0.25);
+            border-top-color: var(--orange);
             animation: spin .7s linear infinite;
+            flex-shrink: 0;
         }
 
         @keyframes spin {
@@ -607,107 +310,452 @@
             }
         }
 
-        @media (max-width:560px) {
-            .ticket {
-                flex-direction: column;
+        .privacy-note {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--label-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .privacy-note .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--green);
+        }
+
+        /* ---------- queue ---------- */
+        .queue-section {
+            margin-top: 52px;
+        }
+
+        .queue-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .queue-count {
+            font-size: 13px;
+            color: var(--label-3);
+            font-weight: 500;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pill-btn {
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            padding: 9px 16px;
+            border-radius: 99px;
+            transition: transform .12s ease, opacity .15s ease, background .15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: -0.01em;
+        }
+
+        .pill-btn:active {
+            transform: scale(0.96);
+        }
+
+        .pill-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .pill-blue {
+            background: var(--blue);
+            color: #fff;
+        }
+
+        .pill-blue:hover:not(:disabled) {
+            background: #3399FF;
+        }
+
+        .pill-glass {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--label);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .pill-glass:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.13);
+        }
+
+        .pill-green {
+            background: var(--green);
+            color: #04270F;
+        }
+
+        .pill-green:hover:not(:disabled) {
+            background: #3EE06B;
+        }
+
+        .pill-red-outline {
+            background: rgba(255, 69, 58, 0.1);
+            color: #FF7A70;
+            border: 1px solid rgba(255, 69, 58, 0.3);
+        }
+
+        .row-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .row {
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            position: relative;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .row:hover {
+            transform: translateY(-1px);
+        }
+
+        .row-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .row-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .row-top {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .row-name {
+            font-size: 14.5px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 280px;
+        }
+
+        .row-size {
+            font-size: 12px;
+            color: var(--label-3);
+            flex-shrink: 0;
+        }
+
+        .row-fmt {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 7px;
+            flex-wrap: wrap;
+        }
+
+        .fmt-pill {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--label-2);
+        }
+
+        .fmt-pill.target {
+            background: rgba(10, 132, 255, 0.15);
+            color: #6EB8FF;
+        }
+
+        .fmt-arrow {
+            color: var(--label-3);
+            font-size: 11px;
+        }
+
+        .segmented {
+            display: inline-flex;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 8px;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .segmented button {
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            border: none;
+            background: transparent;
+            color: var(--label-3);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .segmented button.active {
+            background: var(--blue);
+            color: #fff;
+        }
+
+        .row-status {
+            margin-top: 11px;
+        }
+
+        .status-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12.5px;
+            color: var(--label-2);
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-dot.queued {
+            background: var(--label-3);
+        }
+
+        .status-dot.converting {
+            background: var(--orange);
+            box-shadow: 0 0 0 0 rgba(255, 159, 10, 0.5);
+            animation: pulseDot 1.4s ease-out infinite;
+        }
+
+        .status-dot.done {
+            background: var(--green);
+        }
+
+        .status-dot.error {
+            background: var(--red);
+        }
+
+        @keyframes pulseDot {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 159, 10, 0.45);
             }
 
-            .ticket-stub {
-                width: 100%;
+            70% {
+                box-shadow: 0 0 0 7px rgba(255, 159, 10, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 159, 10, 0);
+            }
+        }
+
+        .progress-wrap {
+            margin-top: 9px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 6px;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.09);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 99px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--blue), var(--teal));
+            transition: width .35s cubic-bezier(.4, 0, .2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+            width: 60px;
+            animation: shimmer 1.3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-80px);
+            }
+
+            100% {
+                transform: translateX(220px);
+            }
+        }
+
+        .pct-num {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--label);
+            min-width: 38px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .time-text {
+            font-size: 11.5px;
+            color: var(--label-3);
+            margin-top: 5px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .row-action {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: var(--label-3);
+            cursor: pointer;
+            font-size: 15px;
+            line-height: 1;
+            padding: 3px;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .remove-btn:hover {
+            color: var(--red);
+            background: rgba(255, 69, 58, 0.1);
+        }
+
+        .empty-note {
+            text-align: center;
+            color: var(--label-3);
+            font-size: 13.5px;
+            padding: 20px 4px;
+        }
+
+        footer {
+            margin-top: 64px;
+            text-align: center;
+            font-size: 11.5px;
+            color: var(--label-3);
+        }
+
+        @media (max-width:480px) {
+            .row {
+                flex-wrap: wrap;
+            }
+
+            .row-action {
                 flex-direction: row;
-                border-right: none;
-                border-bottom: 2px dashed var(--paper-line);
-                padding: 10px;
-                gap: 10px;
+                width: 100%;
+                justify-content: flex-end;
+                margin-top: 10px;
             }
 
-            .ticket-stub::before,
-            .ticket-stub::after {
-                left: auto;
-                right: -8px;
-                top: 50%;
-                margin-top: -8px;
-                margin-left: 0;
-            }
-
-            .ticket-stub::before {
-                left: -8px;
-                right: auto;
-            }
-
-            .stub-arrow {
-                margin: 0;
-                transform: rotate(90deg);
-            }
-
-            .ticket-name {
-                max-width: 60vw;
+            .row-name {
+                max-width: 52vw;
             }
         }
     </style>
 </head>
 
 <body>
+
+    <div class="aurora">
+        <div class="blob b1"></div>
+        <div class="blob b2"></div>
+        <div class="blob b3"></div>
+        <div class="blob b4"></div>
+    </div>
+    <div class="noise"></div>
+
     <div class="wrap">
 
-        <header>
-            <div class="brand">
-                <div class="brand-mark">P</div>
-                <div>
-                    <div class="brand-name">Passage</div>
-                    <div class="brand-tag">File customs</div>
-                </div>
-            </div>
-            <div class="privacy-chip"><span class="dot"></span>ประมวลผลในเบราว์เซอร์ ไฟล์ไม่ถูกอัปโหลด</div>
-        </header>
-
         <div class="hero">
-            <div class="eyebrow">Apple → Everywhere</div>
-            <h1>ไฟล์จาก iPhone เปิดที่<em>ไหนก็ได้</em></h1>
-            <p>ลากไฟล์ HEIC, HEIF หรือ MOV จากอุปกรณ์ Apple มาวาง เลือกปลายทางเป็น JPG, PNG หรือ MP4
-                แล้วดาวน์โหลดไฟล์ที่เปิดได้กับทุกแพลตฟอร์ม — ทั้งหมดนี้ทำงานบนเครื่องของคุณเท่านั้น</p>
+            <h1>ไฟล์ Apple<br>ใช้ได้ทุกที่</h1>
+            <p>แปลง HEIC, HEIF และ MOV จาก iPhone ให้เป็น JPG, PNG หรือ MP4 — ประมวลผลทั้งหมดในเบราว์เซอร์ของคุณ</p>
+        </div>
 
-            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="เลือกหรือวางไฟล์เพื่อแปลง">
-                <svg class="dz-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 6v24M24 6l-8 8M24 6l8 8" stroke="#F2A93B" stroke-width="2.4" stroke-linecap="round"
+        <div class="dropzone glass" id="dropzone" tabindex="0" role="button" aria-label="เลือกหรือวางไฟล์เพื่อแปลง">
+            <div class="dz-icon-wrap">
+                <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                    <path d="M13 4v14M13 4l-6 6M13 4l6 6" stroke="white" stroke-width="2.2" stroke-linecap="round"
                         stroke-linejoin="round" />
-                    <path d="M8 30v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6" stroke="#8A8F9C" stroke-width="2.4"
-                        stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M5 18v2.5A1.5 1.5 0 0 0 6.5 22h13a1.5 1.5 0 0 0 1.5-1.5V18" stroke="white"
+                        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                <div class="dz-title">วางไฟล์ที่นี่ หรือคลิกเพื่อเลือก</div>
-                <div class="dz-sub">เลือกได้หลายไฟล์พร้อมกัน</div>
-                <div class="dz-formats">
-                    <span class="fmt-chip">HEIC</span><span class="fmt-chip">HEIF</span><span
-                        class="fmt-chip">MOV</span>
-                    <span class="fmt-chip">JPG</span><span class="fmt-chip">PNG</span>
-                    <span
-                        style="align-self:center;color:var(--muted-2);font-family:'IBM Plex Mono',monospace;font-size:11px;">→</span>
-                    <span class="fmt-chip out">JPG</span><span class="fmt-chip out">PNG</span><span
-                        class="fmt-chip out">MP4</span>
+            </div>
+            <div class="dz-title">วางไฟล์ที่นี่ หรือแตะเพื่อเลือก</div>
+            <div class="dz-sub">เลือกได้หลายไฟล์พร้อมกัน</div>
+            <div class="dz-formats">
+                <span class="fmt-tag">HEIC</span><span class="fmt-tag">HEIF</span><span class="fmt-tag">MOV</span><span
+                    class="fmt-tag">JPG</span><span class="fmt-tag">PNG</span>
+                <span class="fmt-tag out">→ JPG</span><span class="fmt-tag out">→ PNG</span><span class="fmt-tag out">→
+                    MP4</span>
+            </div>
+        </div>
+        <input type="file" id="fileInput" multiple
+            accept=".heic,.heif,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.mov,.mp4,.m4v,.avi,.mkv,.webm,.3gp,image/*,video/*">
+
+        <div class="engine-banner glass" id="engineBanner"><span class="spinner"></span><span>กำลังโหลดตัวแปลงวิดีโอ
+                ครั้งแรกใช้เวลาสักครู่</span></div>
+        <div class="privacy-note"><span class="dot"></span>ไฟล์ไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์ ทำงานในเครื่องคุณเท่านั้น
+        </div>
+
+        <div class="queue-section" id="queueSection" style="display:none;">
+            <div class="queue-toolbar">
+                <div class="queue-count"><span id="queueCount">0</span> ไฟล์ในคิว</div>
+                <div class="toolbar-actions">
+                    <button class="pill-btn pill-glass" id="downloadAllBtn"
+                        style="display:none;">ดาวน์โหลดทั้งหมด</button>
+                    <button class="pill-btn pill-blue" id="convertAllBtn">แปลงทั้งหมด</button>
                 </div>
             </div>
-            <input type="file" id="fileInput" multiple
-                accept=".heic,.heif,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.mov,.mp4,.m4v,.avi,.mkv,.webm,.3gp,image/*,video/*">
-            <div id="ffmpegBanner"><span class="spinner"></span><span id="ffmpegBannerText">กำลังโหลดตัวแปลงวิดีโอ
-                    (ครั้งแรกใช้เวลาสักครู่)…</span></div>
+            <div class="row-list" id="queueList"></div>
         </div>
+        <div class="empty-note" id="emptyNote">ยังไม่มีไฟล์ในคิว</div>
 
-        <div class="queue-head" id="queueHead" style="display:none;">
-            <div class="queue-title">คิวไฟล์ (<span id="queueCount">0</span>)</div>
-            <div class="queue-actions">
-                <button class="btn btn-ghost btn-sm" id="downloadAllBtn" style="display:none;">ดาวน์โหลดทั้งหมด
-                    (.zip)</button>
-                <button class="btn btn-primary btn-sm" id="convertAllBtn">แปลงทั้งหมด</button>
-            </div>
-        </div>
-
-        <div id="queueList"></div>
-        <div class="empty-note" id="emptyNote">ยังไม่มีไฟล์ในคิว — เริ่มจากลากไฟล์มาวางด้านบน</div>
-
-        <footer>
-            <span>Passage · แปลงไฟล์ในเบราว์เซอร์ ไม่มีเซิร์ฟเวอร์เก็บข้อมูล</span>
-            <span>รองรับ HEIC / HEIF / MOV / JPG / PNG / MP4</span>
-        </footer>
+        <footer>Passage · แปลงไฟล์ในเบราว์เซอร์ ไม่มีเซิร์ฟเวอร์เก็บข้อมูลของคุณ</footer>
     </div>
 
     <script>
@@ -717,33 +765,32 @@
 
             const dropzone = document.getElementById('dropzone');
             const fileInput = document.getElementById('fileInput');
+            const queueSection = document.getElementById('queueSection');
             const queueList = document.getElementById('queueList');
-            const queueHead = document.getElementById('queueHead');
             const queueCount = document.getElementById('queueCount');
             const emptyNote = document.getElementById('emptyNote');
             const convertAllBtn = document.getElementById('convertAllBtn');
             const downloadAllBtn = document.getElementById('downloadAllBtn');
-            const ffmpegBanner = document.getElementById('ffmpegBanner');
-            const ffmpegBannerText = document.getElementById('ffmpegBannerText');
+            const engineBanner = document.getElementById('engineBanner');
 
             let items = [];
             let idCounter = 0;
             let ffmpegInstance = null;
             let ffmpegLoading = null;
+            let currentVideoItem = null;
 
             // ---------- helpers ----------
-            function extOf(name) {
-                const parts = name.split('.');
-                return parts.length > 1 ? parts.pop().toLowerCase() : '';
-            }
-            function baseName(name) {
-                const ext = extOf(name);
-                return ext ? name.slice(0, -(ext.length + 1)) : name;
-            }
+            function extOf(name) { const p = name.split('.'); return p.length > 1 ? p.pop().toLowerCase() : ''; }
+            function baseName(name) { const e = extOf(name); return e ? name.slice(0, -(e.length + 1)) : name; }
             function fmtSize(bytes) {
                 if (bytes < 1024) return bytes + ' B';
                 if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
                 return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+            function fmtTime(sec) {
+                sec = Math.max(0, Math.round(sec));
+                const m = Math.floor(sec / 60), s = sec % 60;
+                return m > 0 ? (m + ':' + String(s).padStart(2, '0')) : (s + 's');
             }
             function detectKind(file) {
                 const ext = extOf(file.name);
@@ -751,19 +798,23 @@
                 if (VIDEO_EXTS.includes(ext)) return { kind: 'video', ext };
                 return { kind: 'unsupported', ext };
             }
+            function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
             // ---------- add files ----------
             function addFiles(fileList) {
                 Array.from(fileList).forEach(file => {
                     const { kind, ext } = detectKind(file);
+                    const isMp4Ready = ext === 'mp4';
                     items.push({
                         id: 'f' + (idCounter++),
                         file, kind, ext,
                         outFormat: kind === 'image' ? 'jpg' : 'mp4',
-                        status: kind === 'unsupported' ? 'error' : (ext === 'mp4' ? 'done' : 'queued'),
+                        status: kind === 'unsupported' ? 'error' : (isMp4Ready ? 'done' : 'queued'),
                         progress: 0,
-                        blob: kind === 'unsupported' ? null : (ext === 'mp4' ? file : null),
-                        outName: ext === 'mp4' ? file.name : null,
+                        startTime: null,
+                        totalTime: null,
+                        blob: isMp4Ready ? file : null,
+                        outName: isMp4Ready ? file.name : null,
                         errorMsg: kind === 'unsupported' ? 'ไม่รองรับไฟล์ประเภทนี้' : null
                     });
                 });
@@ -780,99 +831,114 @@
             // ---------- render ----------
             function render() {
                 if (items.length === 0) {
-                    queueHead.style.display = 'none';
+                    queueSection.style.display = 'none';
                     emptyNote.style.display = 'block';
                     queueList.innerHTML = '';
                     return;
                 }
                 emptyNote.style.display = 'none';
-                queueHead.style.display = 'flex';
+                queueSection.style.display = 'block';
                 queueCount.textContent = items.length;
-
-                const anyDone = items.some(i => i.status === 'done');
-                downloadAllBtn.style.display = anyDone ? 'inline-flex' : 'none';
-
-                const anyQueued = items.some(i => i.status === 'queued' || i.status === 'error' && i.kind !== 'unsupported');
+                downloadAllBtn.style.display = items.some(i => i.status === 'done') ? 'inline-flex' : 'none';
                 convertAllBtn.disabled = !items.some(i => i.status === 'queued');
-
-                queueList.innerHTML = items.map(renderTicket).join('');
+                queueList.innerHTML = items.map(renderRow).join('');
             }
 
-            function renderTicket(item) {
+            function iconFor(item) {
+                if (item.kind === 'image') return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="4" stroke="#6EB8FF" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.6" stroke="#6EB8FF" stroke-width="1.8"/><path d="M21 15l-5.5-5.5L4 21" stroke="#6EB8FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+                if (item.kind === 'video') return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="14" height="13" rx="3" stroke="#BF9CFF" stroke-width="1.8"/><path d="M16.5 10l5-3v10l-5-3" stroke="#BF9CFF" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+                return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#FF7A70" stroke-width="1.8"/><path d="M12 8v5M12 16h.01" stroke="#FF7A70" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+            }
+
+            function renderRow(item) {
                 const stubCode = item.ext ? item.ext.toUpperCase() : '?';
                 const targetLabel = item.kind === 'video' ? 'MP4' : item.outFormat.toUpperCase();
 
-                let controlsHtml = '';
+                let fmtHtml = '';
                 if (item.kind === 'image') {
-                    controlsHtml = `
+                    fmtHtml = `<span class="fmt-pill">${stubCode}</span><span class="fmt-arrow">→</span>
         <div class="segmented" data-role="segmented">
           <button type="button" data-fmt="jpg" class="${item.outFormat === 'jpg' ? 'active' : ''}">JPG</button>
           <button type="button" data-fmt="png" class="${item.outFormat === 'png' ? 'active' : ''}">PNG</button>
         </div>`;
                 } else if (item.kind === 'video') {
-                    controlsHtml = `<div class="fixed-out">MP4</div>`;
+                    fmtHtml = `<span class="fmt-pill">${stubCode}</span><span class="fmt-arrow">→</span><span class="fmt-pill target">MP4</span>`;
                 } else {
-                    controlsHtml = `<div class="fixed-out" style="color:#B8402E;">ไม่รองรับ</div>`;
+                    fmtHtml = `<span class="fmt-pill" style="color:#FF7A70;background:rgba(255,69,58,0.12);">${stubCode || 'ไม่รู้จัก'}</span>`;
                 }
 
                 let statusHtml = '';
                 let actionHtml = '';
                 if (item.status === 'queued') {
-                    statusHtml = `<span class="status-text">พร้อมแปลง</span>`;
-                    actionHtml = `<button class="btn-mini convert" data-action="convert" data-id="${item.id}">แปลงไฟล์</button>`;
+                    statusHtml = `<div class="status-line"><span class="status-dot queued"></span>รอดำเนินการ</div>`;
+                    actionHtml = `<button class="pill-btn pill-blue" data-action="convert" data-id="${item.id}">แปลง</button>`;
                 } else if (item.status === 'converting') {
                     const pct = Math.round((item.progress || 0) * 100);
-                    statusHtml = `<div class="status-row"><span class="status-text">กำลังแปลง ${pct > 0 ? pct + '%' : ''}</span><div class="progress-track"><div class="progress-fill" style="width:${pct}%;"></div></div></div>`;
-                    actionHtml = `<button class="btn-mini convert" disabled>กำลังทำ…</button>`;
+                    statusHtml = `
+        <div class="status-line"><span class="status-dot converting"></span>กำลังแปลง…</div>
+        <div class="progress-wrap">
+          <div class="progress-track"><div class="progress-fill" style="width:${pct}%;"></div></div>
+          <div class="pct-num">${pct}%</div>
+        </div>
+        <div class="time-text">กำลังคำนวณเวลา…</div>`;
+                    actionHtml = `<button class="pill-btn pill-glass" disabled>กำลังทำ</button>`;
                 } else if (item.status === 'done') {
-                    statusHtml = `<span class="status-text" style="color:#2E7D68;">ผ่านด่านแล้ว</span>`;
-                    actionHtml = `<button class="btn-mini download" data-action="download" data-id="${item.id}">ดาวน์โหลด</button>`;
+                    const timeStr = item.totalTime != null ? `แปลงเสร็จใน ${fmtTime(item.totalTime)}` : 'พร้อมใช้งาน';
+                    statusHtml = `<div class="status-line"><span class="status-dot done"></span>${timeStr}</div>`;
+                    actionHtml = `<button class="pill-btn pill-green" data-action="download" data-id="${item.id}">ดาวน์โหลด</button>`;
                 } else if (item.status === 'error') {
-                    statusHtml = `<span class="status-text err">${item.errorMsg || 'เกิดข้อผิดพลาด'}</span>`;
-                    actionHtml = item.kind === 'unsupported' ? '' : `<button class="btn-mini convert" data-action="convert" data-id="${item.id}">ลองอีกครั้ง</button>`;
+                    statusHtml = `<div class="status-line" style="color:#FF7A70;"><span class="status-dot error"></span>${item.errorMsg || 'เกิดข้อผิดพลาด'}</div>`;
+                    actionHtml = item.kind === 'unsupported' ? '' : `<button class="pill-btn pill-red-outline" data-action="convert" data-id="${item.id}">ลองอีกครั้ง</button>`;
                 }
 
-                const stamp = item.status === 'done' ? `<div class="stamp">CLEARED ✓</div>` : '';
-
                 return `
-      <div class="ticket" data-id="${item.id}">
-        ${stamp}
-        <div class="ticket-stub">
-          <div class="stub-code">${stubCode}</div>
-          <div class="stub-label">from</div>
-          <svg class="stub-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h11M9 4l4 4-4 4" stroke="#8A8F9C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div class="stub-code">${item.kind === 'unsupported' ? '—' : targetLabel}</div>
-          <div class="stub-label">to</div>
+      <div class="row glass" data-id="${item.id}">
+        <div class="row-icon">${iconFor(item)}</div>
+        <div class="row-main">
+          <div class="row-top">
+            <span class="row-name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</span>
+            <span class="row-size">${fmtSize(item.file.size)}</span>
+          </div>
+          <div class="row-fmt">${fmtHtml}</div>
+          <div class="row-status">${statusHtml}</div>
         </div>
-        <div class="ticket-body">
-          <div class="ticket-top">
-            <div>
-              <div class="ticket-name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</div>
-              <div class="ticket-meta">${fmtSize(item.file.size)}</div>
-            </div>
-            <button class="remove-btn" data-action="remove" data-id="${item.id}" aria-label="ลบไฟล์">×</button>
-          </div>
-          <div class="ticket-controls">
-            ${controlsHtml}
-            <div style="display:flex;align-items:center;gap:12px;">
-              ${statusHtml}
-              ${actionHtml}
-            </div>
-          </div>
+        <div class="row-action">
+          <button class="remove-btn" data-action="remove" data-id="${item.id}" aria-label="ลบไฟล์">✕</button>
+          ${actionHtml}
         </div>
       </div>`;
             }
 
-            function escapeHtml(s) {
-                return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-            }
+            // ---------- live progress ticking (elapsed / ETA) ----------
+            setInterval(() => {
+                items.forEach(item => {
+                    if (item.status !== 'converting' || !item.startTime) return;
+                    const row = queueList.querySelector(`.row[data-id="${item.id}"]`);
+                    if (!row) return;
+                    const elapsed = (Date.now() - item.startTime) / 1000;
+                    const fill = row.querySelector('.progress-fill');
+                    const pctNum = row.querySelector('.pct-num');
+                    const timeText = row.querySelector('.time-text');
+                    const pct = Math.round((item.progress || 0) * 100);
+                    if (fill) fill.style.width = pct + '%';
+                    if (pctNum) pctNum.textContent = pct + '%';
+                    if (timeText) {
+                        if (item.progress > 0.03) {
+                            const totalEst = elapsed / item.progress;
+                            const remaining = Math.max(0, totalEst - elapsed);
+                            timeText.textContent = `${fmtTime(elapsed)} · เหลือประมาณ ${fmtTime(remaining)}`;
+                        } else {
+                            timeText.textContent = `${fmtTime(elapsed)} · กำลังเตรียมตัวแปลง…`;
+                        }
+                    }
+                });
+            }, 250);
 
             // ---------- event delegation ----------
             queueList.addEventListener('click', e => {
                 const btn = e.target.closest('[data-action]');
                 if (btn) {
-                    const id = btn.dataset.id;
-                    const action = btn.dataset.action;
+                    const id = btn.dataset.id, action = btn.dataset.action;
                     if (action === 'convert') convertItem(id);
                     if (action === 'download') downloadItem(id);
                     if (action === 'remove') { items = items.filter(i => i.id !== id); render(); }
@@ -880,8 +946,7 @@
                 }
                 const segBtn = e.target.closest('.segmented button');
                 if (segBtn) {
-                    const ticket = e.target.closest('.ticket');
-                    const id = ticket.dataset.id;
+                    const id = e.target.closest('.row').dataset.id;
                     const item = items.find(i => i.id === id);
                     item.outFormat = segBtn.dataset.fmt;
                     if (item.status === 'done') { item.status = 'queued'; item.blob = null; }
@@ -921,17 +986,17 @@
             async function convertItem(id) {
                 const item = items.find(i => i.id === id);
                 if (!item) return;
-                item.status = 'converting'; item.progress = 0; render();
+                item.status = 'converting'; item.progress = 0; item.startTime = Date.now(); render();
                 try {
                     if (item.kind === 'image') {
                         item.blob = await convertImage(item.file, item.outFormat);
                         item.outName = baseName(item.file.name) + '.' + item.outFormat;
-                        item.status = 'done';
                     } else if (item.kind === 'video') {
                         item.blob = await convertVideo(item);
                         item.outName = baseName(item.file.name) + '.mp4';
-                        item.status = 'done';
                     }
+                    item.totalTime = (Date.now() - item.startTime) / 1000;
+                    item.status = 'done';
                 } catch (err) {
                     console.error(err);
                     item.status = 'error';
@@ -947,10 +1012,7 @@
                     const result = await heic2any({ blob: file, toType: mime, quality: 0.92 });
                     return Array.isArray(result) ? result[0] : result;
                 }
-                const bitmap = await createImageBitmap(file).catch(async () => {
-                    // fallback for browsers without createImageBitmap support for this type
-                    return await loadImageEl(file);
-                });
+                const bitmap = await createImageBitmap(file).catch(() => loadImageEl(file));
                 const canvas = document.createElement('canvas');
                 canvas.width = bitmap.width || bitmap.naturalWidth;
                 canvas.height = bitmap.height || bitmap.naturalHeight;
@@ -963,10 +1025,9 @@
             function loadImageEl(file) {
                 return new Promise((resolve, reject) => {
                     const img = new Image();
-                    const url = URL.createObjectURL(file);
-                    img.onload = () => { resolve(img); };
+                    img.onload = () => resolve(img);
                     img.onerror = reject;
-                    img.src = url;
+                    img.src = URL.createObjectURL(file);
                 });
             }
 
@@ -985,33 +1046,27 @@
             async function ensureFFmpeg() {
                 if (ffmpegInstance) return ffmpegInstance;
                 if (ffmpegLoading) return ffmpegLoading;
-                ffmpegBanner.classList.add('show');
+                engineBanner.classList.add('show');
                 const { FFmpeg } = FFmpegWASM;
                 const ffmpeg = new FFmpeg();
                 ffmpeg.on('progress', ({ progress }) => {
-                    if (currentVideoItem) {
-                        currentVideoItem.progress = Math.max(0, Math.min(1, progress || 0));
-                        render();
-                    }
+                    if (currentVideoItem) currentVideoItem.progress = Math.max(0, Math.min(1, progress || 0));
                 });
-                // Single-thread core: no SharedArrayBuffer / cross-origin isolation required.
                 const baseURL = 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.12.10/umd';
                 ffmpegLoading = (async () => {
                     const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
                     const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
                     await ffmpeg.load({ coreURL, wasmURL });
                     ffmpegInstance = ffmpeg;
-                    ffmpegBanner.classList.remove('show');
+                    engineBanner.classList.remove('show');
                     return ffmpegInstance;
                 })().catch(err => {
-                    ffmpegBanner.classList.remove('show');
+                    engineBanner.classList.remove('show');
                     ffmpegLoading = null;
                     throw err;
                 });
                 return ffmpegLoading;
             }
-
-            let currentVideoItem = null;
 
             async function convertVideo(item) {
                 const ff = await ensureFFmpeg();
