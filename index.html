@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passage — แปลงไฟล์ Apple ให้ใช้ได้ทุกที่</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.1/index.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.11.6/ffmpeg.min.js"></script>
+    <style>
+        :root {
+            --ink: #12151A;
+            --ink-2: #1A1E26;
+            --panel: #1E232C;
+            --paper: #F2EEE4;
+            --paper-dim: #E4DFD0;
+            --paper-line: #CFC8B3;
+            --ink-text: #201D17;
+            --muted: #8A8F9C;
+            --muted-2: #5B6070;
+            --amber: #F2A93B;
+            --amber-dim: #B9832B;
+            --teal: #57D6BE;
+            --red: #E8604C;
+            --radius: 14px;
+            --radius-sm: 8px;
+            font-size: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background:
+                radial-gradient(1200px 600px at 12% -10%, #1E2430 0%, transparent 60%),
+                radial-gradient(1000px 700px at 100% 0%, #201A16 0%, transparent 55%),
+                var(--ink);
+            color: var(--paper);
+            font-family: 'Inter', system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.001ms !important;
+                transition-duration: 0.001ms !important;
+            }
+        }
+
+        .wrap {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        /* ---------- header ---------- */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 56px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-mark {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--amber), #D9832E);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            color: var(--ink);
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .brand-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 19px;
+            letter-spacing: 0.01em;
+        }
+
+        .brand-tag {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .privacy-chip {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11.5px;
+            color: var(--muted);
+            border: 1px solid #2C323F;
+            border-radius: 99px;
+            padding: 7px 13px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .privacy-chip .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--teal);
+            flex-shrink: 0;
+        }
+
+        /* ---------- hero ---------- */
+        .hero {
+            margin-bottom: 40px;
+        }
+
+        .eyebrow {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: var(--amber);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .eyebrow::before {
+            content: '';
+            width: 22px;
+            height: 1px;
+            background: var(--amber-dim);
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: clamp(32px, 5vw, 50px);
+            line-height: 1.08;
+            letter-spacing: -0.01em;
+            margin: 0 0 18px;
+            max-width: 14ch;
+        }
+
+        h1 em {
+            font-style: normal;
+            color: var(--amber);
+        }
+
+        .hero p {
+            font-size: 16px;
+            line-height: 1.65;
+            color: #C7CAD3;
+            max-width: 52ch;
+            margin: 0;
+        }
+
+        /* ---------- dropzone ---------- */
+        .dropzone {
+            margin-top: 32px;
+            border: 1.5px dashed #3A4150;
+            border-radius: var(--radius);
+            padding: 44px 28px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .15s ease, background .15s ease;
+            background: rgba(255, 255, 255, 0.015);
+            position: relative;
+        }
+
+        .dropzone:hover,
+        .dropzone.drag {
+            border-color: var(--amber);
+            background: rgba(242, 169, 59, 0.05);
+        }
+
+        .dropzone:focus-visible {
+            outline: 2px solid var(--amber);
+            outline-offset: 3px;
+        }
+
+        .dz-icon {
+            width: 42px;
+            height: 42px;
+            margin: 0 auto 16px;
+            opacity: 0.85;
+        }
+
+        .dz-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .dz-sub {
+            font-size: 13.5px;
+            color: var(--muted);
+        }
+
+        .dz-formats {
+            margin-top: 18px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .fmt-chip {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--muted-2);
+            border: 1px solid #2C323F;
+            border-radius: 5px;
+            padding: 3px 8px;
+            letter-spacing: 0.03em;
+        }
+
+        .fmt-chip.out {
+            color: var(--teal);
+            border-color: #2C4A44;
+        }
+
+        input[type=file] {
+            display: none;
+        }
+
+        /* ---------- queue ---------- */
+        .queue-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 52px 0 16px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .queue-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: #D7DAE0;
+        }
+
+        .queue-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 9px 16px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: transform .1s ease, opacity .15s ease, background .15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--amber);
+            color: #231705;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #F7B655;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border-color: #333A47;
+            color: #C7CAD3;
+        }
+
+        .btn-ghost:hover:not(:disabled) {
+            border-color: var(--muted);
+        }
+
+        .btn-sm {
+            padding: 7px 12px;
+            font-size: 12.5px;
+        }
+
+        .empty-note {
+            color: var(--muted);
+            font-size: 13.5px;
+            padding: 24px 4px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        /* ---------- ticket card ---------- */
+        .ticket {
+            display: flex;
+            background: var(--paper);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 14px;
+            color: var(--ink-text);
+            box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .ticket-stub {
+            width: 96px;
+            flex-shrink: 0;
+            background: var(--paper-dim);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 14px 6px;
+            border-right: 2px dashed var(--paper-line);
+        }
+
+        .ticket-stub::before,
+        .ticket-stub::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--ink);
+            left: 88px;
+            margin-left: -8px;
+        }
+
+        .ticket-stub::before {
+            top: -8px;
+        }
+
+        .ticket-stub::after {
+            bottom: -8px;
+        }
+
+        .stub-code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.02em;
+        }
+
+        .stub-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 9px;
+            color: var(--muted-2);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 5px;
+        }
+
+        .stub-arrow {
+            margin: 8px 0;
+            opacity: 0.5;
+        }
+
+        .ticket-body {
+            flex: 1;
+            padding: 16px 18px;
+            min-width: 0;
+        }
+
+        .ticket-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .ticket-name {
+            font-weight: 600;
+            font-size: 14.5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 320px;
+        }
+
+        .ticket-meta {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--muted-2);
+            margin-top: 3px;
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: var(--muted-2);
+            cursor: pointer;
+            font-size: 17px;
+            line-height: 1;
+            padding: 2px 4px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .remove-btn:hover {
+            color: var(--red);
+        }
+
+        .ticket-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 14px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .segmented {
+            display: inline-flex;
+            background: #E7E1D2;
+            border-radius: 7px;
+            padding: 3px;
+            gap: 2px;
+        }
+
+        .segmented button {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11.5px;
+            font-weight: 600;
+            border: none;
+            background: transparent;
+            color: var(--muted-2);
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .segmented button.active {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .fixed-out {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--ink-text);
+            background: #E7E1D2;
+            border-radius: 7px;
+            padding: 8px 14px;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-text {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--muted-2);
+            white-space: nowrap;
+        }
+
+        .status-text.err {
+            color: #B8402E;
+        }
+
+        .progress-track {
+            width: 84px;
+            height: 5px;
+            background: #DDD6C4;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--amber-dim);
+            width: 0%;
+            transition: width .2s ease;
+        }
+
+        .stamp {
+            position: absolute;
+            top: 14px;
+            right: 18px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            color: var(--teal);
+            border: 2px solid var(--teal);
+            border-radius: 6px;
+            padding: 3px 9px;
+            transform: rotate(6deg);
+            letter-spacing: 0.06em;
+            opacity: 0.9;
+            pointer-events: none;
+        }
+
+        .btn-mini {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 12.5px;
+            padding: 8px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-mini.convert {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .btn-mini.convert:hover {
+            background: #2A3040;
+        }
+
+        .btn-mini.download {
+            background: var(--teal);
+            color: #0E2A24;
+        }
+
+        .btn-mini.download:hover {
+            background: #72E4CC;
+        }
+
+        .btn-mini:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ---------- footer ---------- */
+        footer {
+            margin-top: 64px;
+            padding-top: 24px;
+            border-top: 1px solid #232936;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11.5px;
+            color: var(--muted-2);
+        }
+
+        #ffmpegBanner {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: var(--amber);
+        }
+
+        #ffmpegBanner.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            border: 2px solid rgba(242, 169, 59, 0.25);
+            border-top-color: var(--amber);
+            animation: spin .7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width:560px) {
+            .ticket {
+                flex-direction: column;
+            }
+
+            .ticket-stub {
+                width: 100%;
+                flex-direction: row;
+                border-right: none;
+                border-bottom: 2px dashed var(--paper-line);
+                padding: 10px;
+                gap: 10px;
+            }
+
+            .ticket-stub::before,
+            .ticket-stub::after {
+                left: auto;
+                right: -8px;
+                top: 50%;
+                margin-top: -8px;
+                margin-left: 0;
+            }
+
+            .ticket-stub::before {
+                left: -8px;
+                right: auto;
+            }
+
+            .stub-arrow {
+                margin: 0;
+                transform: rotate(90deg);
+            }
+
+            .ticket-name {
+                max-width: 60vw;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+
+        <header>
+            <div class="brand">
+                <div class="brand-mark">P</div>
+                <div>
+                    <div class="brand-name">Passage</div>
+                    <div class="brand-tag">File customs</div>
+                </div>
+            </div>
+            <div class="privacy-chip"><span class="dot"></span>ประมวลผลในเบราว์เซอร์ ไฟล์ไม่ถูกอัปโหลด</div>
+        </header>
+
+        <div class="hero">
+            <div class="eyebrow">Apple → Everywhere</div>
+            <h1>ไฟล์จาก iPhone เปิดที่<em>ไหนก็ได้</em></h1>
+            <p>ลากไฟล์ HEIC, HEIF หรือ MOV จากอุปกรณ์ Apple มาวาง เลือกปลายทางเป็น JPG, PNG หรือ MP4
+                แล้วดาวน์โหลดไฟล์ที่เปิดได้กับทุกแพลตฟอร์ม — ทั้งหมดนี้ทำงานบนเครื่องของคุณเท่านั้น</p>
+
+            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="เลือกหรือวางไฟล์เพื่อแปลง">
+                <svg class="dz-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 6v24M24 6l-8 8M24 6l8 8" stroke="#F2A93B" stroke-width="2.4" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    <path d="M8 30v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6" stroke="#8A8F9C" stroke-width="2.4"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <div class="dz-title">วางไฟล์ที่นี่ หรือคลิกเพื่อเลือก</div>
+                <div class="dz-sub">เลือกได้หลายไฟล์พร้อมกัน</div>
+                <div class="dz-formats">
+                    <span class="fmt-chip">HEIC</span><span class="fmt-chip">HEIF</span><span
+                        class="fmt-chip">MOV</span>
+                    <span class="fmt-chip">JPG</span><span class="fmt-chip">PNG</span>
+                    <span
+                        style="align-self:center;color:var(--muted-2);font-family:'IBM Plex Mono',monospace;font-size:11px;">→</span>
+                    <span class="fmt-chip out">JPG</span><span class="fmt-chip out">PNG</span><span
+                        class="fmt-chip out">MP4</span>
+                </div>
+            </div>
+            <input type="file" id="fileInput" multiple
+                accept=".heic,.heif,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.mov,.mp4,.m4v,.avi,.mkv,.webm,.3gp,image/*,video/*">
+            <div id="ffmpegBanner"><span class="spinner"></span><span id="ffmpegBannerText">กำลังโหลดตัวแปลงวิดีโอ
+                    (ครั้งแรกใช้เวลาสักครู่)…</span></div>
+        </div>
+
+        <div class="queue-head" id="queueHead" style="display:none;">
+            <div class="queue-title">คิวไฟล์ (<span id="queueCount">0</span>)</div>
+            <div class="queue-actions">
+                <button class="btn btn-ghost btn-sm" id="downloadAllBtn" style="display:none;">ดาวน์โหลดทั้งหมด
+                    (.zip)</button>
+                <button class="btn btn-primary btn-sm" id="convertAllBtn">แปลงทั้งหมด</button>
+            </div>
+        </div>
+
+        <div id="queueList"></div>
+        <div class="empty-note" id="emptyNote">ยังไม่มีไฟล์ในคิว — เริ่มจากลากไฟล์มาวางด้านบน</div>
+
+        <footer>
+            <span>Passage · แปลงไฟล์ในเบราว์เซอร์ ไม่มีเซิร์ฟเวอร์เก็บข้อมูล</span>
+            <span>รองรับ HEIC / HEIF / MOV / JPG / PNG / MP4</span>
+        </footer>
+    </div>
+
+    <script>
+        (function () {
+            const IMAGE_EXTS = ['heic', 'heif', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tiff', 'tif'];
+            const VIDEO_EXTS = ['mov', 'mp4', 'm4v', 'avi', 'mkv', 'webm', '3gp'];
+
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('fileInput');
+            const queueList = document.getElementById('queueList');
+            const queueHead = document.getElementById('queueHead');
+            const queueCount = document.getElementById('queueCount');
+            const emptyNote = document.getElementById('emptyNote');
+            const convertAllBtn = document.getElementById('convertAllBtn');
+            const downloadAllBtn = document.getElementById('downloadAllBtn');
+            const ffmpegBanner = document.getElementById('ffmpegBanner');
+            const ffmpegBannerText = document.getElementById('ffmpegBannerText');
+
+            let items = [];
+            let idCounter = 0;
+            let ffmpegInstance = null;
+            let ffmpegLoading = null;
+
+            // ---------- helpers ----------
+            function extOf(name) {
+                const parts = name.split('.');
+                return parts.length > 1 ? parts.pop().toLowerCase() : '';
+            }
+            function baseName(name) {
+                const ext = extOf(name);
+                return ext ? name.slice(0, -(ext.length + 1)) : name;
+            }
+            function fmtSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+            function detectKind(file) {
+                const ext = extOf(file.name);
+                if (IMAGE_EXTS.includes(ext)) return { kind: 'image', ext };
+                if (VIDEO_EXTS.includes(ext)) return { kind: 'video', ext };
+                return { kind: 'unsupported', ext };
+            }
+
+            // ---------- add files ----------
+            function addFiles(fileList) {
+                Array.from(fileList).forEach(file => {
+                    const { kind, ext } = detectKind(file);
+                    items.push({
+                        id: 'f' + (idCounter++),
+                        file, kind, ext,
+                        outFormat: kind === 'image' ? 'jpg' : 'mp4',
+                        status: kind === 'unsupported' ? 'error' : (ext === 'mp4' ? 'done' : 'queued'),
+                        progress: 0,
+                        blob: kind === 'unsupported' ? null : (ext === 'mp4' ? file : null),
+                        outName: ext === 'mp4' ? file.name : null,
+                        errorMsg: kind === 'unsupported' ? 'ไม่รองรับไฟล์ประเภทนี้' : null
+                    });
+                });
+                render();
+            }
+
+            dropzone.addEventListener('click', () => fileInput.click());
+            dropzone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+            fileInput.addEventListener('change', e => { addFiles(e.target.files); fileInput.value = ''; });
+            ['dragenter', 'dragover'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag'); }));
+            ['dragleave', 'drop'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag'); }));
+            dropzone.addEventListener('drop', e => { if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+            // ---------- render ----------
+            function render() {
+                if (items.length === 0) {
+                    queueHead.style.display = 'none';
+                    emptyNote.style.display = 'block';
+                    queueList.innerHTML = '';
+                    return;
+                }
+                emptyNote.style.display = 'none';
+                queueHead.style.display = 'flex';
+                queueCount.textContent = items.length;
+
+                const anyDone = items.some(i => i.status === 'done');
+                downloadAllBtn.style.display = anyDone ? 'inline-flex' : 'none';
+
+                const anyQueued = items.some(i => i.status === 'queued' || i.status === 'error' && i.kind !== 'unsupported');
+                convertAllBtn.disabled = !items.some(i => i.status === 'queued');
+
+                queueList.innerHTML = items.map(renderTicket).join('');
+            }
+
+            function renderTicket(item) {
+                const stubCode = item.ext ? item.ext.toUpperCase() : '?';
+                const targetLabel = item.kind === 'video' ? 'MP4' : item.outFormat.toUpperCase();
+
+                let controlsHtml = '';
+                if (item.kind === 'image') {
+                    controlsHtml = `
+        <div class="segmented" data-role="segmented">
+          <button type="button" data-fmt="jpg" class="${item.outFormat === 'jpg' ? 'active' : ''}">JPG</button>
+          <button type="button" data-fmt="png" class="${item.outFormat === 'png' ? 'active' : ''}">PNG</button>
+        </div>`;
+                } else if (item.kind === 'video') {
+                    controlsHtml = `<div class="fixed-out">MP4</div>`;
+                } else {
+                    controlsHtml = `<div class="fixed-out" style="color:#B8402E;">ไม่รองรับ</div>`;
+                }
+
+                let statusHtml = '';
+                let actionHtml = '';
+                if (item.status === 'queued') {
+                    statusHtml = `<span class="status-text">พร้อมแปลง</span>`;
+                    actionHtml = `<button class="btn-mini convert" data-action="convert" data-id="${item.id}">แปลงไฟล์</button>`;
+                } else if (item.status === 'converting') {
+                    const pct = Math.round((item.progress || 0) * 100);
+                    statusHtml = `<div class="status-row"><span class="status-text">กำลังแปลง ${pct > 0 ? pct + '%' : ''}</span><div class="progress-track"><div class="progress-fill" style="width:${pct}%;"></div></div></div>`;
+                    actionHtml = `<button class="btn-mini convert" disabled>กำลังทำ…</button>`;
+                } else if (item.status === 'done') {
+                    statusHtml = `<span class="status-text" style="color:#2E7D68;">ผ่านด่านแล้ว</span>`;
+                    actionHtml = `<button class="btn-mini download" data-action="download" data-id="${item.id}">ดาวน์โหลด</button>`;
+                } else if (item.status === 'error') {
+                    statusHtml = `<span class="status-text err">${item.errorMsg || 'เกิดข้อผิดพลาด'}</span>`;
+                    actionHtml = item.kind === 'unsupported' ? '' : `<button class="btn-mini convert" data-action="convert" data-id="${item.id}">ลองอีกครั้ง</button>`;
+                }
+
+                const stamp = item.status === 'done' ? `<div class="stamp">CLEARED ✓</div>` : '';
+
+                return `
+      <div class="ticket" data-id="${item.id}">
+        ${stamp}
+        <div class="ticket-stub">
+          <div class="stub-code">${stubCode}</div>
+          <div class="stub-label">from</div>
+          <svg class="stub-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h11M9 4l4 4-4 4" stroke="#8A8F9C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="stub-code">${item.kind === 'unsupported' ? '—' : targetLabel}</div>
+          <div class="stub-label">to</div>
+        </div>
+        <div class="ticket-body">
+          <div class="ticket-top">
+            <div>
+              <div class="ticket-name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</div>
+              <div class="ticket-meta">${fmtSize(item.file.size)}</div>
+            </div>
+            <button class="remove-btn" data-action="remove" data-id="${item.id}" aria-label="ลบไฟล์">×</button>
+          </div>
+          <div class="ticket-controls">
+            ${controlsHtml}
+            <div style="display:flex;align-items:center;gap:12px;">
+              ${statusHtml}
+              ${actionHtml}
+            </div>
+          </div>
+        </div>
+      </div>`;
+            }
+
+            function escapeHtml(s) {
+                return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            }
+
+            // ---------- event delegation ----------
+            queueList.addEventListener('click', e => {
+                const btn = e.target.closest('[data-action]');
+                if (btn) {
+                    const id = btn.dataset.id;
+                    const action = btn.dataset.action;
+                    if (action === 'convert') convertItem(id);
+                    if (action === 'download') downloadItem(id);
+                    if (action === 'remove') { items = items.filter(i => i.id !== id); render(); }
+                    return;
+                }
+                const segBtn = e.target.closest('.segmented button');
+                if (segBtn) {
+                    const ticket = e.target.closest('.ticket');
+                    const id = ticket.dataset.id;
+                    const item = items.find(i => i.id === id);
+                    item.outFormat = segBtn.dataset.fmt;
+                    if (item.status === 'done') { item.status = 'queued'; item.blob = null; }
+                    render();
+                }
+            });
+
+            convertAllBtn.addEventListener('click', async () => {
+                const queued = items.filter(i => i.status === 'queued');
+                for (const item of queued) { await convertItem(item.id); }
+            });
+
+            downloadAllBtn.addEventListener('click', async () => {
+                const done = items.filter(i => i.status === 'done' && i.blob);
+                if (done.length === 0) return;
+                const zip = new JSZip();
+                done.forEach(i => zip.file(i.outName || i.file.name, i.blob));
+                const content = await zip.generateAsync({ type: 'blob' });
+                triggerDownload(content, 'passage-converted.zip');
+            });
+
+            function triggerDownload(blob, name) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = name;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 4000);
+            }
+
+            function downloadItem(id) {
+                const item = items.find(i => i.id === id);
+                if (!item || !item.blob) return;
+                triggerDownload(item.blob, item.outName || item.file.name);
+            }
+
+            // ---------- conversion ----------
+            async function convertItem(id) {
+                const item = items.find(i => i.id === id);
+                if (!item) return;
+                item.status = 'converting'; item.progress = 0; render();
+                try {
+                    if (item.kind === 'image') {
+                        item.blob = await convertImage(item.file, item.outFormat);
+                        item.outName = baseName(item.file.name) + '.' + item.outFormat;
+                        item.status = 'done';
+                    } else if (item.kind === 'video') {
+                        item.blob = await convertVideo(item);
+                        item.outName = baseName(item.file.name) + '.mp4';
+                        item.status = 'done';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    item.status = 'error';
+                    item.errorMsg = 'แปลงไม่สำเร็จ — ' + (err && err.message ? err.message : 'ลองไฟล์อื่น');
+                }
+                render();
+            }
+
+            async function convertImage(file, outFormat) {
+                const ext = extOf(file.name);
+                const mime = outFormat === 'png' ? 'image/png' : 'image/jpeg';
+                if (ext === 'heic' || ext === 'heif') {
+                    const result = await heic2any({ blob: file, toType: mime, quality: 0.92 });
+                    return Array.isArray(result) ? result[0] : result;
+                }
+                const bitmap = await createImageBitmap(file).catch(async () => {
+                    // fallback for browsers without createImageBitmap support for this type
+                    return await loadImageEl(file);
+                });
+                const canvas = document.createElement('canvas');
+                canvas.width = bitmap.width || bitmap.naturalWidth;
+                canvas.height = bitmap.height || bitmap.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                if (outFormat === 'jpg') { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+                ctx.drawImage(bitmap, 0, 0);
+                return await new Promise(resolve => canvas.toBlob(resolve, mime, 0.92));
+            }
+
+            function loadImageEl(file) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    const url = URL.createObjectURL(file);
+                    img.onload = () => { resolve(img); };
+                    img.onerror = reject;
+                    img.src = url;
+                });
+            }
+
+            async function ensureFFmpeg() {
+                if (ffmpegInstance) return ffmpegInstance;
+                if (ffmpegLoading) return ffmpegLoading;
+                ffmpegBanner.classList.add('show');
+                const { createFFmpeg } = FFmpeg;
+                ffmpegInstance = createFFmpeg({
+                    log: false,
+                    corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.8.5/ffmpeg-core.js'
+                });
+                ffmpegLoading = ffmpegInstance.load().then(() => {
+                    ffmpegBanner.classList.remove('show');
+                    return ffmpegInstance;
+                }).catch(err => {
+                    ffmpegBanner.classList.remove('show');
+                    ffmpegInstance = null;
+                    throw err;
+                });
+                return ffmpegLoading;
+            }
+
+            async function convertVideo(item) {
+                const ff = await ensureFFmpeg();
+                const { fetchFile } = FFmpeg;
+                const inName = 'in_' + item.id + '.' + item.ext;
+                const outName = 'out_' + item.id + '.mp4';
+                ff.FS('writeFile', inName, await fetchFile(item.file));
+                ff.setProgress(({ ratio }) => {
+                    item.progress = Math.max(0, Math.min(1, ratio || 0));
+                    render();
+                });
+                await ff.run('-i', inName, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName);
+                const data = ff.FS('readFile', outName);
+                const blob = new Blob([data.buffer], { type: 'video/mp4' });
+                try { ff.FS('unlink', inName); ff.FS('unlink', outName); } catch (e) { }
+                return blob;
+            }
+
+            render();
+        })();
+    </script>
+</body>
+
+</html>
