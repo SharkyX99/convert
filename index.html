@@ -68,8 +68,8 @@
     .blob {
       position: absolute;
       border-radius: 50%;
-      filter: blur(90px);
-      opacity: 0.55;
+      filter: blur(110px);
+      opacity: 0.4;
       will-change: transform;
     }
 
@@ -89,6 +89,7 @@
       top: 10%;
       right: -160px;
       animation: float2 30s ease-in-out infinite;
+      opacity: 0.32;
     }
 
     .b3 {
@@ -98,6 +99,7 @@
       bottom: -160px;
       left: 10%;
       animation: float3 24s ease-in-out infinite;
+      opacity: 0.3;
     }
 
     .b4 {
@@ -106,7 +108,7 @@
       background: #FF375F;
       bottom: 5%;
       right: 5%;
-      opacity: 0.3;
+      opacity: 0.18;
       animation: float1 34s ease-in-out infinite reverse;
     }
 
@@ -202,13 +204,23 @@
       font-weight: 400;
     }
 
-    /* ---------- glass card base ---------- */
+    /* ---------- glass card base (iOS/macOS Control Center style) ---------- */
     .glass {
+      position: relative;
       background: linear-gradient(160deg, var(--glass-bg-strong), var(--glass-bg));
-      backdrop-filter: blur(28px) saturate(180%);
-      -webkit-backdrop-filter: blur(28px) saturate(180%);
-      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(40px) saturate(160%);
+      -webkit-backdrop-filter: blur(40px) saturate(160%);
+      border: 0.5px solid var(--glass-border);
       box-shadow: var(--glass-shadow);
+    }
+
+    .glass::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.03) 18%, rgba(255, 255, 255, 0) 40%);
     }
 
     /* ---------- dropzone ---------- */
@@ -859,6 +871,7 @@
         <div class="queue-count"><span id="queueCount">0</span> ไฟล์ในคิว</div>
         <div class="toolbar-actions">
           <button class="pill-btn pill-glass" id="downloadAllBtn" style="display:none;">ดาวน์โหลดทั้งหมด</button>
+          <button class="pill-btn pill-red-outline" id="deleteAllBtn" style="display:none;">ลบไฟล์ที่แปลงแล้ว</button>
           <button class="pill-btn pill-blue" id="convertAllBtn">แปลงทั้งหมด</button>
         </div>
       </div>
@@ -882,6 +895,7 @@
       const emptyNote = document.getElementById('emptyNote');
       const convertAllBtn = document.getElementById('convertAllBtn');
       const downloadAllBtn = document.getElementById('downloadAllBtn');
+      const deleteAllBtn = document.getElementById('deleteAllBtn');
       const engineBanner = document.getElementById('engineBanner');
 
       let items = [];
@@ -919,7 +933,7 @@
           items.push({
             id: 'f' + (idCounter++),
             file, kind, ext,
-            outFormat: kind === 'image' ? 'jpg' : 'mp4',
+            outFormat: kind === 'image' ? 'png' : 'mp4',
             status: kind === 'unsupported' ? 'error' : (isMp4Ready ? 'done' : 'queued'),
             progress: 0,
             startTime: null,
@@ -951,6 +965,7 @@
         queueSection.style.display = 'block';
         queueCount.textContent = items.length;
         downloadAllBtn.style.display = items.some(i => i.status === 'done') ? 'inline-flex' : 'none';
+        deleteAllBtn.style.display = items.some(i => i.status === 'done') ? 'inline-flex' : 'none';
         convertAllBtn.disabled = !items.some(i => i.status === 'queued');
         queueList.innerHTML = items.map(renderRow).join('');
       }
@@ -1089,6 +1104,11 @@
         for (const item of queued) { await convertItem(item.id); }
       });
 
+      deleteAllBtn.addEventListener('click', () => {
+        items = items.filter(i => i.status !== 'done');
+        render();
+      });
+
       downloadAllBtn.addEventListener('click', async () => {
         const done = items.filter(i => i.status === 'done' && i.blob);
         if (done.length === 0) return;
@@ -1221,7 +1241,10 @@
         await ff.writeFile(inName, await fetchFile(item.file));
         item.stage = 'encoding';
         // ultrafast trades a little file size for much faster encoding — the main lever for perceived speed
-        await ff.exec(['-i', inName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName]);
+        // -pix_fmt yuv420p is the key fix for Safari/QuickTime playback: iPhone HEVC footage (esp. HDR/"High Efficiency")
+        // is often 10-bit, and a 10-bit H.264 stream will encode fine but fails to play back in Safari, which only
+        // decodes standard 8-bit yuv420p H.264.
+        await ff.exec(['-i', inName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName]);
         item.stage = 'finishing';
         const data = await ff.readFile(outName);
         const blob = new Blob([data.buffer], { type: 'video/mp4' });
