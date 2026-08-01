@@ -860,8 +860,8 @@
     <input type="file" id="fileInput" multiple
       accept=".heic,.heif,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.mov,.mp4,.m4v,.avi,.mkv,.webm,.3gp,image/*,video/*">
 
-    <div class="engine-banner glass" id="engineBanner"><span class="spinner"></span><span>กำลังโหลดตัวแปลงวิดีโอ
-        ครั้งแรกใช้เวลาสักครู่</span></div>
+    <div class="engine-banner glass" id="engineBanner"><span class="spinner"></span><span
+        id="engineBannerText">กำลังโหลดตัวแปลงวิดีโอ ครั้งแรกใช้เวลาสักครู่</span></div>
     <div class="privacy-note"><span class="dot"></span>ไฟล์ไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์ ทำงานในเครื่องคุณเท่านั้น</div>
     <div class="privacy-note" id="safariNote" style="display:none;color:#FFD479;">แปลงวิดีโอบน Safari
       บางเวอร์ชันอาจไม่เสถียร — ถ้าค้าง แนะนำใช้ Chrome หรือ Edge</div>
@@ -1182,10 +1182,26 @@
       }
 
       // Minimal stand-ins for @ffmpeg/util (not on cdnjs) — same-origin blob loading avoids CORS/worker issues.
-      async function toBlobURL(url, mimeType) {
+      async function toBlobURL(url, mimeType, onProgress) {
         const resp = await fetch(url);
-        const buf = await resp.arrayBuffer();
-        return URL.createObjectURL(new Blob([buf], { type: mimeType }));
+        if (!resp.ok) throw new Error('โหลดไฟล์ตัวแปลงไม่สำเร็จ (' + resp.status + ')');
+        if (!resp.body || !resp.body.getReader) {
+          // Fallback for browsers without streaming response bodies
+          const buf = await resp.arrayBuffer();
+          return URL.createObjectURL(new Blob([buf], { type: mimeType }));
+        }
+        const total = Number(resp.headers.get('Content-Length')) || 0;
+        const reader = resp.body.getReader();
+        const chunks = [];
+        let received = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.length;
+          if (onProgress) onProgress(total ? received / total : null, received);
+        }
+        return URL.createObjectURL(new Blob(chunks, { type: mimeType }));
       }
       async function fetchFile(input) {
         if (input instanceof Blob) return new Uint8Array(await input.arrayBuffer());
@@ -1207,23 +1223,34 @@
         if (ffmpegInstance) return ffmpegInstance;
         if (ffmpegLoading) return ffmpegLoading;
         engineBanner.classList.add('show');
+        const engineBannerText = document.getElementById('engineBannerText');
+        if (engineBannerText) engineBannerText.textContent = 'กำลังโหลดตัวแปลงวิดีโอ…';
         const { FFmpeg } = FFmpegWASM;
         const ffmpeg = new FFmpeg();
         ffmpeg.on('progress', ({ progress }) => {
           if (currentVideoItem) currentVideoItem.progress = Math.max(0, Math.min(1, progress || 0));
         });
         const baseURL = 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.12.10/umd';
+        // The wasm engine is ~25–30MB — on mobile data this can genuinely take a while, so the timeout
+        // needs real headroom, and we show live download % instead of a blind spinner.
         const timeoutMsg = isSafari
-          ? 'โหลดตัวแปลงวิดีโอไม่สำเร็จใน Safari — บาง เวอร์ชันของ Safari ใช้งาน WebAssembly ตัวนี้ไม่ได้ดี ลองเปิดด้วย Chrome หรือ Edge แทน'
-          : 'โหลดตัวแปลงวิดีโอใช้เวลานานเกินไป ลองรีเฟรชหน้าแล้วลองใหม่';
+          ? 'โหลดตัวแปลงวิดีโอไม่สำเร็จใน Safari — บางเวอร์ชันของ Safari ใช้งาน WebAssembly ตัวนี้ไม่ได้ดี ลองเปิดด้วย Chrome หรือ Edge แทน'
+          : 'โหลดตัวแปลงวิดีโอไม่สำเร็จ อาจเป็นเพราะอินเทอร์เน็ตช้าหรือไม่เสถียร ลองใหม่อีกครั้งบน Wi-Fi';
         ffmpegLoading = withTimeout((async () => {
+          const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm', (ratio) => {
+            if (engineBannerText) {
+              engineBannerText.textContent = ratio != null
+                ? `กำลังโหลดตัวแปลงวิดีโอ ${Math.round(ratio * 100)}%`
+                : 'กำลังโหลดตัวแปลงวิดีโอ…';
+            }
+          });
           const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
-          const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+          if (engineBannerText) engineBannerText.textContent = 'กำลังเตรียมตัวแปลงวิดีโอ…';
           await ffmpeg.load({ coreURL, wasmURL });
           ffmpegInstance = ffmpeg;
           engineBanner.classList.remove('show');
           return ffmpegInstance;
-        })(), 25000, timeoutMsg).catch(err => {
+        })(), 120000, timeoutMsg).catch(err => {
           engineBanner.classList.remove('show');
           ffmpegLoading = null;
           throw err;
