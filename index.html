@@ -317,7 +317,6 @@
   let idCounter = 0;
   let ffmpegInstance = null;
   let ffmpegLoading = null;
-  let ffmpegIsMultiThread = false;
   let currentVideoItem = null;
 
   // ---------- helpers ----------
@@ -350,7 +349,7 @@
         id: 'f' + (idCounter++),
         file, kind, ext,
         outFormat: kind === 'image' ? 'png' : 'mp4',
-        quality: 'fast',
+        quality: 'original',
         status: kind === 'unsupported' ? 'error' : (isMp4Ready ? 'done' : 'queued'),
         progress: 0,
         startTime: null,
@@ -654,11 +653,10 @@
     ffmpeg.on('progress', ({ progress }) => {
       if(currentVideoItem) currentVideoItem.progress = Math.max(0, Math.min(1, progress || 0));
     });
-    // Multi-threaded encoding needs SharedArrayBuffer, which only exists in a cross-origin-isolated
-    // context (requires the COOP/COEP headers set in vercel.json). Fall back to single-thread if unavailable —
-    // e.g. headers not yet deployed, or a browser that doesn't support it.
-    const canUseThreads = window.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined';
-    const baseURL = canUseThreads ? './vendor/ffmpeg-core-mt' : './vendor/ffmpeg-core';
+    // Reverted multi-threaded loading: it requires nested workers spawned from a blob-URL-loaded core,
+    // and that path resolution proved unreliable across browsers (worked in Safari, hung in Chrome).
+    // Single-thread is slower per-frame but reliable everywhere, which matters more here.
+    const baseURL = './vendor/ffmpeg-core';
     // The wasm engine is ~30MB — on mobile data this can genuinely take a while, so the timeout
     // needs real headroom, and we show live download % instead of a blind spinner.
     const timeoutMsg = isSafari
@@ -673,12 +671,9 @@
         }
       });
       const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
-      const loadOpts = { coreURL, wasmURL };
-      if(canUseThreads) loadOpts.workerURL = await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, 'text/javascript');
       if(engineBannerText) engineBannerText.textContent = 'กำลังเตรียมตัวแปลงวิดีโอ…';
-      await ffmpeg.load(loadOpts);
+      await ffmpeg.load({ coreURL, wasmURL });
       ffmpegInstance = ffmpeg;
-      ffmpegIsMultiThread = canUseThreads;
       engineBanner.classList.remove('show');
       return ffmpegInstance;
     })(), 120000, timeoutMsg).catch(err => {
@@ -689,6 +684,20 @@
     return ffmpegLoading;
   }
 
+  async function probeVideoDimensions(ff, inName){
+    let width = null, height = null;
+    const handler = ({ message }) => {
+      const m = message.match(/Video:.*?(\d{2,5})x(\d{2,5})/);
+      if(m){ width = parseInt(m[1], 10); height = parseInt(m[2], 10); }
+    };
+    ff.on('log', handler);
+    try{
+      // Decode ~0.1s only, no output written — just enough for ffmpeg to print the input stream's resolution.
+      await ff.exec(['-i', inName, '-t', '0.1', '-f', 'null', '-']);
+    }catch(e){ /* expected to sometimes exit non-zero; we only care about the logged stream info */ }
+    return { width, height };
+  }
+
   async function convertVideo(item){
     item.stage = ffmpegInstance ? 'reading' : 'loading';
     const ff = await ensureFFmpeg();
@@ -697,17 +706,23 @@
     const inName = 'in_' + item.id + '.' + item.ext;
     const outName = 'out_' + item.id + '.mp4';
     await ff.writeFile(inName, await fetchFile(item.file));
-    item.stage = 'encoding';
+
     // ultrafast trades a little file size for much faster encoding — the main lever for perceived speed
     // -pix_fmt yuv420p is the key fix for Safari/QuickTime playback: iPhone HEVC footage (esp. HDR/"High Efficiency")
     // is often 10-bit, and a 10-bit H.264 stream will encode fine but fails to play back in Safari, which only
     // decodes standard 8-bit yuv420p H.264.
     const args = ['-i', inName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p'];
     if(item.quality === 'fast'){
-      // Cap the longest side to 1920px (only downscales, never upscales) — 4K source has 4x the pixels
-      // of 1080p, so this is the single biggest speed lever for iPhone footage.
-      args.push('-vf', 'scale=1920:1920:force_original_aspect_ratio=decrease:force_divisible_by=2');
+      item.stage = 'reading';
+      const { width, height } = await probeVideoDimensions(ff, inName);
+      const longSide = width && height ? Math.max(width, height) : null;
+      // Only scale if the source is actually bigger than the cap — scaling an already-1080p (or smaller)
+      // video is pure overhead (an extra full-frame swscale pass) with zero size benefit.
+      if(longSide == null || longSide > 1920){
+        args.push('-vf', 'scale=1920:1920:force_original_aspect_ratio=decrease:force_divisible_by=2');
+      }
     }
+    item.stage = 'encoding';
     args.push('-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName);
     await ff.exec(args);
     item.stage = 'finishing';
