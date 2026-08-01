@@ -405,7 +405,8 @@
         </div>`;
     } else if(item.kind === 'video'){
       fmtHtml = `<span class="fmt-pill">${stubCode}</span><span class="fmt-arrow">→</span><span class="fmt-pill target">MP4</span>
-        <div class="segmented" data-role="quality" title="ลดความละเอียดช่วยให้แปลงเร็วขึ้นมาก">
+        <div class="segmented" data-role="quality" title="ลดความละเอียดช่วยให้แปลงเร็วขึ้นมาก โดยเฉพาะบนคอมพิวเตอร์รุ่นเก่า">
+          <button type="button" data-quality="saver" class="${item.quality==='saver'?'active':''}">ประหยัด · 720p</button>
           <button type="button" data-quality="fast" class="${item.quality==='fast'?'active':''}">เร็ว · 1080p</button>
           <button type="button" data-quality="original" class="${item.quality==='original'?'active':''}">ต้นฉบับ</button>
         </div>`;
@@ -713,14 +714,15 @@
     // is often 10-bit, and a 10-bit H.264 stream will encode fine but fails to play back in Safari, which only
     // decodes standard 8-bit yuv420p H.264.
     const args = ['-i', inName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p'];
-    if(item.quality === 'fast'){
+    if(item.quality === 'fast' || item.quality === 'saver'){
       item.stage = 'reading';
+      const cap = item.quality === 'saver' ? 1280 : 1920;
       const { width, height } = await probeVideoDimensions(ff, inName);
       const longSide = width && height ? Math.max(width, height) : null;
-      // Only scale if the source is actually bigger than the cap — scaling an already-1080p (or smaller)
-      // video is pure overhead (an extra full-frame swscale pass) with zero size benefit.
-      if(longSide == null || longSide > 1920){
-        args.push('-vf', 'scale=1920:1920:force_original_aspect_ratio=decrease:force_divisible_by=2');
+      // Only scale if the source is actually bigger than the cap — scaling an already-small video
+      // is pure overhead (an extra full-frame swscale pass) with zero size benefit.
+      if(longSide == null || longSide > cap){
+        args.push('-vf', `scale=${cap}:${cap}:force_original_aspect_ratio=decrease:force_divisible_by=2`);
       }
     }
     item.stage = 'encoding';
