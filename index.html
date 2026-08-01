@@ -317,6 +317,7 @@
   let idCounter = 0;
   let ffmpegInstance = null;
   let ffmpegLoading = null;
+  let ffmpegIsMultiThread = false;
   let currentVideoItem = null;
 
   // ---------- helpers ----------
@@ -349,6 +350,7 @@
         id: 'f' + (idCounter++),
         file, kind, ext,
         outFormat: kind === 'image' ? 'png' : 'mp4',
+        quality: 'fast',
         status: kind === 'unsupported' ? 'error' : (isMp4Ready ? 'done' : 'queued'),
         progress: 0,
         startTime: null,
@@ -403,7 +405,11 @@
           <button type="button" data-fmt="png" class="${item.outFormat==='png'?'active':''}">PNG</button>
         </div>`;
     } else if(item.kind === 'video'){
-      fmtHtml = `<span class="fmt-pill">${stubCode}</span><span class="fmt-arrow">→</span><span class="fmt-pill target">MP4</span>`;
+      fmtHtml = `<span class="fmt-pill">${stubCode}</span><span class="fmt-arrow">→</span><span class="fmt-pill target">MP4</span>
+        <div class="segmented" data-role="quality" title="ลดความละเอียดช่วยให้แปลงเร็วขึ้นมาก">
+          <button type="button" data-quality="fast" class="${item.quality==='fast'?'active':''}">เร็ว · 1080p</button>
+          <button type="button" data-quality="original" class="${item.quality==='original'?'active':''}">ต้นฉบับ</button>
+        </div>`;
     } else {
       fmtHtml = `<span class="fmt-pill" style="color:#FF7A70;background:rgba(255,69,58,0.12);">${stubCode || 'ไม่รู้จัก'}</span>`;
     }
@@ -508,7 +514,9 @@
     if(segBtn){
       const id = e.target.closest('.row').dataset.id;
       const item = items.find(i => i.id === id);
-      item.outFormat = segBtn.dataset.fmt;
+      const role = segBtn.closest('.segmented').dataset.role;
+      if(role === 'quality') item.quality = segBtn.dataset.quality;
+      else item.outFormat = segBtn.dataset.fmt;
       if(item.status === 'done'){ item.status = 'queued'; item.blob = null; }
       render();
     }
@@ -646,8 +654,12 @@
     ffmpeg.on('progress', ({ progress }) => {
       if(currentVideoItem) currentVideoItem.progress = Math.max(0, Math.min(1, progress || 0));
     });
-    const baseURL = './vendor/ffmpeg-core';
-    // The wasm engine is ~25–30MB — on mobile data this can genuinely take a while, so the timeout
+    // Multi-threaded encoding needs SharedArrayBuffer, which only exists in a cross-origin-isolated
+    // context (requires the COOP/COEP headers set in vercel.json). Fall back to single-thread if unavailable —
+    // e.g. headers not yet deployed, or a browser that doesn't support it.
+    const canUseThreads = window.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined';
+    const baseURL = canUseThreads ? './vendor/ffmpeg-core-mt' : './vendor/ffmpeg-core';
+    // The wasm engine is ~30MB — on mobile data this can genuinely take a while, so the timeout
     // needs real headroom, and we show live download % instead of a blind spinner.
     const timeoutMsg = isSafari
       ? 'โหลดตัวแปลงวิดีโอไม่สำเร็จใน Safari — บางเวอร์ชันของ Safari ใช้งาน WebAssembly ตัวนี้ไม่ได้ดี ลองเปิดด้วย Chrome หรือ Edge แทน'
@@ -661,9 +673,12 @@
         }
       });
       const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+      const loadOpts = { coreURL, wasmURL };
+      if(canUseThreads) loadOpts.workerURL = await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, 'text/javascript');
       if(engineBannerText) engineBannerText.textContent = 'กำลังเตรียมตัวแปลงวิดีโอ…';
-      await ffmpeg.load({ coreURL, wasmURL });
+      await ffmpeg.load(loadOpts);
       ffmpegInstance = ffmpeg;
+      ffmpegIsMultiThread = canUseThreads;
       engineBanner.classList.remove('show');
       return ffmpegInstance;
     })(), 120000, timeoutMsg).catch(err => {
@@ -687,7 +702,14 @@
     // -pix_fmt yuv420p is the key fix for Safari/QuickTime playback: iPhone HEVC footage (esp. HDR/"High Efficiency")
     // is often 10-bit, and a 10-bit H.264 stream will encode fine but fails to play back in Safari, which only
     // decodes standard 8-bit yuv420p H.264.
-    await ff.exec(['-i', inName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName]);
+    const args = ['-i', inName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p'];
+    if(item.quality === 'fast'){
+      // Cap the longest side to 1920px (only downscales, never upscales) — 4K source has 4x the pixels
+      // of 1080p, so this is the single biggest speed lever for iPhone footage.
+      args.push('-vf', 'scale=1920:1920:force_original_aspect_ratio=decrease:force_divisible_by=2');
+    }
+    args.push('-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName);
+    await ff.exec(args);
     item.stage = 'finishing';
     const data = await ff.readFile(outName);
     const blob = new Blob([data.buffer], { type: 'video/mp4' });
