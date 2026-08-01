@@ -1230,7 +1230,7 @@
         ffmpeg.on('progress', ({ progress }) => {
           if (currentVideoItem) currentVideoItem.progress = Math.max(0, Math.min(1, progress || 0));
         });
-        const baseURL = 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.12.10/umd';
+        const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
         // The wasm engine is ~25–30MB — on mobile data this can genuinely take a while, so the timeout
         // needs real headroom, and we show live download % instead of a blind spinner.
         const timeoutMsg = isSafari
