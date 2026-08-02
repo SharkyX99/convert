@@ -405,7 +405,7 @@
         status: kind === 'unsupported' ? 'error' : (isMp4Ready ? 'done' : 'queued'),
         progress: 0,
         stage: null,
-        encodeFps: null,
+        encodeSpeed: null,
         startTime: null,
         totalTime: null,
         blob: isMp4Ready ? file : null,
@@ -600,7 +600,7 @@
           remainingEl.textContent = '—';
         }
       }
-      if(speedEl) speedEl.textContent = item.encodeFps ? item.encodeFps.toFixed(1) + ' fps' : '—';
+      if(speedEl) speedEl.textContent = item.encodeSpeed ? item.encodeSpeed.toFixed(2) + 'x realtime' : '—';
     });
   }, 250);
 
@@ -671,7 +671,7 @@
   async function convertItem(id){
     const item = items.find(i => i.id === id);
     if(!item) return;
-    item.status = 'converting'; item.progress = 0; item.encodeFps = null;
+    item.status = 'converting'; item.progress = 0; item.encodeSpeed = null;
     item.stage = item.kind === 'video' && !ffmpegInstance ? 'loading' : 'reading';
     item.startTime = Date.now(); render();
     try{
@@ -838,13 +838,13 @@
     }
     item.stage = 'encoding';
     args.push('-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outName);
-    const fpsHandler = ({ message }) => {
-      const m = message.match(/fps=\s*([\d.]+)/);
-      if(m) item.encodeFps = parseFloat(m[1]);
+    const speedHandler = ({ message }) => {
+      const m = message.match(/speed=\s*([\d.]+)x/);
+      if(m) item.encodeSpeed = parseFloat(m[1]);
     };
-    ff.on('log', fpsHandler);
+    ff.on('log', speedHandler);
     await ff.exec(args);
-    item.encodeFps = null;
+    item.encodeSpeed = null;
     item.stage = 'finishing';
     const data = await ff.readFile(outName);
     const blob = new Blob([data.buffer], { type: 'video/mp4' });
